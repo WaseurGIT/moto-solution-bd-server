@@ -46,6 +46,68 @@ async function run() {
       }
     });
 
+    // users api
+    app.post("/users", async (req, res) => {
+      try {
+        const user = req.body;
+        if (!user.name || !user.email) {
+          return res.status(400).send({ error: "Name and email are required" });
+        }
+        const existingUser = await usersCollection.findOne({
+          email: user.email,
+        });
+        if (!existingUser) {
+          const result = await usersCollection.insertOne(user);
+          res.send(result);
+        } else {
+          res.send({ message: "User already exists" });
+        }
+      } catch (error) {
+        console.error("Error adding user:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the user" });
+      }
+    });
+
+    app.get("/users", async (req, res) => {
+      try {
+        const user = await usersCollection.find().toArray();
+        res.send(user);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching users" });
+      }
+    });
+
+    app.get("/users/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { email: email };
+        const user = await usersCollection.findOne(query);
+        res.send(user);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.send({ error: "An error occurred while fetching the user" });
+      }
+    });
+
+    app.delete("/users/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await usersCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while deleting the user" });
+      }
+    });
+
     // reviews api
     app.post("/reviews", async (req, res) => {
       try {
