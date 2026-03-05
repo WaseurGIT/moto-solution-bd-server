@@ -72,6 +72,18 @@ async function run() {
     });
 
     // technicians api
+    app.post("/technicians", async (req, res) => {
+      try {
+        const technician = req.body;
+        const result = await techniciansCollection.insertOne(technician);
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding technician:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the technician" });
+      }
+    });
     app.get("/technicians", async (req, res) => {
       try {
         const technicians = await techniciansCollection.find().toArray();
