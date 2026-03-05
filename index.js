@@ -29,6 +29,9 @@ async function run() {
       .collection("services");
     const reviewsCollection = client.db("motoSolutionBD").collection("reviews");
     const usersCollection = client.db("motoSolutionBD").collection("users");
+    const bookingsCollection = client
+      .db("motoSolutionBD")
+      .collection("bookings");
     const techniciansCollection = client
       .db("motoSolutionBD")
       .collection("technicians");
@@ -105,6 +108,60 @@ async function run() {
         res
           .status(500)
           .send({ error: "An error occurred while deleting the user" });
+      }
+    });
+
+    // bookings api
+    app.post("/bookings", async (req, res) => {
+      try {
+        const booking = req.body;
+        const result = await bookingsCollection.insertOne(booking);
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding booking:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the booking" });
+      }
+    });
+
+    app.get("/bookings", async (req, res) => {
+      try {
+        const bookings = await bookingsCollection.find().toArray();
+        res.send(bookings);
+      } catch (error) {
+        console.error("Error fetching bookings:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching bookings" });
+      }
+    });
+
+    app.get("/bookings/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { email: email };
+        const bookings = await bookingsCollection.find(query).toArray();
+        res.send(bookings);
+      } catch (error) {
+        console.error("Error fetching bookings by email:", error);
+        res.status(500).send({
+          error: "An error occurred while fetching bookings by email",
+        });
+      }
+    });
+
+    app.delete("/bookings/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await bookingsCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error("Error deleting booking:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while deleting the booking" });
       }
     });
 
