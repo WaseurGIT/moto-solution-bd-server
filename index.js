@@ -28,6 +28,7 @@ async function run() {
       .db("motoSolutionBD")
       .collection("services");
     const reviewsCollection = client.db("motoSolutionBD").collection("reviews");
+    const usersCollection = client.db("motoSolutionBD").collection("users");
     const techniciansCollection = client
       .db("motoSolutionBD")
       .collection("technicians");
@@ -46,6 +47,18 @@ async function run() {
     });
 
     // reviews api
+    app.post("/reviews", async (req, res) => {
+      try {
+        const review = req.body;
+        await reviewsCollection.insertOne(review);
+        res.send({ message: "Review added successfully" });
+      } catch (error) {
+        console.error("Error adding review:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the review" });
+      }
+    });
     app.get("/reviews", async (req, res) => {
       try {
         const reviews = await reviewsCollection.find().toArray();
