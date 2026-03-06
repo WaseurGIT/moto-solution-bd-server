@@ -1,16 +1,21 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.febqytm.mongodb.net/?appName=Cluster0`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -19,10 +24,44 @@ const client = new MongoClient(uri, {
   },
 });
 
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    app.post("/jwt", async (req, res) => {
+      try {
+        const { email } = req.body;
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
+        const user = await usersCollection.findOne({ email });
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
+          expiresIn: "7d",
+        });
+        res.status(200).json({ token });
+      } catch (error) {
+        console.error("Error generating JWT:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
 
     const servicesCollection = client
       .db("motoSolutionBD")
@@ -79,7 +118,7 @@ async function run() {
       }
     });
 
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, async (req, res) => {
       try {
         const user = await usersCollection.find().toArray();
         res.send(user);
@@ -91,7 +130,7 @@ async function run() {
       }
     });
 
-    app.get("/users/:email", async (req, res) => {
+    app.get("/users/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const query = { email: email };
@@ -103,7 +142,7 @@ async function run() {
       }
     });
 
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -118,7 +157,7 @@ async function run() {
     });
 
     // vehicle api
-    app.post("/vehicles", async (req, res) => {
+    app.post("/vehicles", verifyToken, async (req, res) => {
       try {
         const vehicle = req.body;
         const result = await vehiclesCollection.insertOne(vehicle);
@@ -157,7 +196,7 @@ async function run() {
       }
     });
 
-    app.delete("/vehicles/:id", async (req, res) => {
+    app.delete("/vehicles/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -172,7 +211,7 @@ async function run() {
     });
 
     // vehicle booking api
-    app.post("/vehicleBookings", async (req, res) => {
+    app.post("/vehicleBookings", verifyToken, async (req, res) => {
       try {
         const vehicleBooking = req.body;
         const result =
@@ -186,7 +225,7 @@ async function run() {
       }
     });
 
-    app.get("/vehicleBookings", async (req, res) => {
+    app.get("/vehicleBookings", verifyToken, async (req, res) => {
       try {
         const vehicleBookings = await vehicleBookingsCollection
           .find()
@@ -200,9 +239,12 @@ async function run() {
       }
     });
 
-    app.get("/vehicleBookings/:email", async (req, res) => {
+    app.get("/vehicleBookings/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
+        if (req.user.email !== req.params.email) {
+          return res.status(403).send({ message: "Forbidden" });
+        }
         const query = { email: email };
         const vehicleBookings = await vehicleBookingsCollection
           .find(query)
@@ -216,7 +258,7 @@ async function run() {
       }
     });
 
-    app.delete("/vehicleBookings/:id", async (req, res) => {
+    app.delete("/vehicleBookings/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -231,7 +273,7 @@ async function run() {
     });
 
     // service bookings api
-    app.post("/bookings", async (req, res) => {
+    app.post("/bookings", verifyToken, async (req, res) => {
       try {
         const booking = req.body;
         const result = await bookingsCollection.insertOne(booking);
@@ -244,7 +286,7 @@ async function run() {
       }
     });
 
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyToken, async (req, res) => {
       try {
         const bookings = await bookingsCollection.find().toArray();
         res.send(bookings);
@@ -256,7 +298,7 @@ async function run() {
       }
     });
 
-    app.get("/bookings/:email", async (req, res) => {
+    app.get("/bookings/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const query = { email: email };
@@ -270,7 +312,7 @@ async function run() {
       }
     });
 
-    app.delete("/bookings/:id", async (req, res) => {
+    app.delete("/bookings/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -310,7 +352,7 @@ async function run() {
     });
 
     // technicians api
-    app.post("/technicians", async (req, res) => {
+    app.post("/technicians", verifyToken, async (req, res) => {
       try {
         const technician = req.body;
         const result = await techniciansCollection.insertOne(technician);
