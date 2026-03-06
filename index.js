@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.febqytm.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -29,6 +29,12 @@ async function run() {
       .collection("services");
     const reviewsCollection = client.db("motoSolutionBD").collection("reviews");
     const usersCollection = client.db("motoSolutionBD").collection("users");
+    const vehiclesCollection = client
+      .db("motoSolutionBD")
+      .collection("vehicles");
+    const vehicleBookingsCollection = client
+      .db("motoSolutionBD")
+      .collection("vehicleBookings");
     const bookingsCollection = client
       .db("motoSolutionBD")
       .collection("bookings");
@@ -111,7 +117,63 @@ async function run() {
       }
     });
 
-    // bookings api
+    // vehicle api
+    app.post("/vehicles", async (req, res) => {
+      try {
+        const vehicle = req.body;
+        const result = await vehiclesCollection.insertOne(vehicle);
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding vehicle:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the vehicle" });
+      }
+    });
+
+    app.get("/vehicles", async (req, res) => {
+      try {
+        const vehicles = await vehiclesCollection.find().toArray();
+        res.send(vehicles);
+      } catch (error) {
+        console.error("Error fetching vehicles:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching vehicles" });
+      }
+    });
+
+    app.get("/vehicles/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const vehicle = await vehiclesCollection.findOne(query);
+        res.send(vehicle);
+      } catch (error) {
+        console.error("Error fetching vehicle:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching the vehicle" });
+      }
+    });
+
+    app.delete("/vehicles/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await vehiclesCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error("Error deleting vehicle:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while deleting the vehicle" });
+      }
+    });
+
+    // vehicle booking api
+
+    // service bookings api
     app.post("/bookings", async (req, res) => {
       try {
         const booking = req.body;
