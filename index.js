@@ -53,9 +53,13 @@ async function run() {
         if (!user) {
           return res.status(404).json({ message: "User not found" });
         }
-        const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
-          expiresIn: "7d",
-        });
+        const token = jwt.sign(
+          { email: user.email, role: user.role },
+          process.env.JWT_SECRET,
+          {
+            expiresIn: "7d",
+          },
+        );
         res.status(200).json({ token });
       } catch (error) {
         console.error("Error generating JWT:", error);
@@ -80,6 +84,20 @@ async function run() {
     const techniciansCollection = client
       .db("motoSolutionBD")
       .collection("technicians");
+
+    const verifyAdmin = async (req, res, next) => {
+      try {
+        const email = req.user.email;
+        const user = await usersCollection.findOne({ email });
+        if (!user || user.role !== "admin") {
+          return res.status(403).json({ message: "Admin access required" });
+        }
+        next();
+      } catch (error) {
+        console.error("Admin verification error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+      }
+    };
 
     // service api
     app.get("/services", async (req, res) => {
@@ -118,7 +136,7 @@ async function run() {
       }
     });
 
-    app.get("/users", verifyToken, async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const user = await usersCollection.find().toArray();
         res.send(user);
@@ -142,7 +160,7 @@ async function run() {
       }
     });
 
-    app.delete("/users/:id", verifyToken, async (req, res) => {
+    app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -157,7 +175,7 @@ async function run() {
     });
 
     // vehicle api
-    app.post("/vehicles", verifyToken, async (req, res) => {
+    app.post("/vehicles", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const vehicle = req.body;
         const result = await vehiclesCollection.insertOne(vehicle);
@@ -196,7 +214,7 @@ async function run() {
       }
     });
 
-    app.delete("/vehicles/:id", verifyToken, async (req, res) => {
+    app.delete("/vehicles/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -313,17 +331,20 @@ async function run() {
     });
 
     app.delete("/bookings/:id", verifyToken, async (req, res) => {
-      try {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await bookingsCollection.deleteOne(query);
-        res.send(result);
-      } catch (error) {
-        console.error("Error deleting booking:", error);
-        res
-          .status(500)
-          .send({ error: "An error occurred while deleting the booking" });
+      const booking = await bookingsCollection.findOne({
+        _id: new ObjectId(req.params.id),
+      });
+
+      if (!booking) {
+        return res.status(404).send({ message: "Booking not found" });
       }
+
+      if (booking.email !== req.user.email && req.user.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+
+      await bookingsCollection.deleteOne({ _id: new ObjectId(req.params.id) });
+      res.send({ message: "Deleted successfully" });
     });
 
     // reviews api
@@ -352,7 +373,7 @@ async function run() {
     });
 
     // technicians api
-    app.post("/technicians", verifyToken, async (req, res) => {
+    app.post("/technicians", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const technician = req.body;
         const result = await techniciansCollection.insertOne(technician);
@@ -375,6 +396,24 @@ async function run() {
           .send({ error: "An error occurred while fetching technicians" });
       }
     });
+    app.delete(
+      "/technicians/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const id = req.params.id;
+          const query = { _id: new ObjectId(id) };
+          const result = await techniciansCollection.deleteOne(query);
+          res.send(result);
+        } catch (error) {
+          console.error("Error deleting technician:", error);
+          res
+            .status(500)
+            .send({ error: "An error occurred while deleting the technician" });
+        }
+      },
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
