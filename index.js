@@ -172,6 +172,63 @@ async function run() {
     });
 
     // vehicle booking api
+    app.post("/vehicleBookings", async (req, res) => {
+      try {
+        const vehicleBooking = req.body;
+        const result =
+          await vehicleBookingsCollection.insertOne(vehicleBooking);
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding vehicle booking:", error);
+        res.status(500).send({
+          error: "An error occurred while adding the vehicle booking",
+        });
+      }
+    });
+
+    app.get("/vehicleBookings", async (req, res) => {
+      try {
+        const vehicleBookings = await vehicleBookingsCollection
+          .find()
+          .toArray();
+        res.send(vehicleBookings);
+      } catch (error) {
+        console.error("Error fetching vehicle bookings:", error);
+        res.status(500).send({
+          error: "An error occurred while fetching vehicle bookings",
+        });
+      }
+    });
+
+    app.get("/vehicleBookings/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { email: email };
+        const vehicleBookings = await vehicleBookingsCollection
+          .find(query)
+          .toArray();
+        res.send(vehicleBookings);
+      } catch (error) {
+        console.error("Error fetching vehicle bookings by email:", error);
+        res.status(500).send({
+          error: "An error occurred while fetching vehicle bookings by email",
+        });
+      }
+    });
+
+    app.delete("/vehicleBookings/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await vehicleBookingsCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error("Error deleting vehicle booking:", error);
+        res.status(500).send({
+          error: "An error occurred while deleting the vehicle booking",
+        });
+      }
+    });
 
     // service bookings api
     app.post("/bookings", async (req, res) => {
