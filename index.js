@@ -72,6 +72,9 @@ async function run() {
       .collection("services");
     const reviewsCollection = client.db("motoSolutionBD").collection("reviews");
     const usersCollection = client.db("motoSolutionBD").collection("users");
+    const accessoriesCollection = client
+      .db("motoSolutionBD")
+      .collection("accessories");
     const vehiclesCollection = client
       .db("motoSolutionBD")
       .collection("vehicles");
@@ -346,6 +349,51 @@ async function run() {
       await bookingsCollection.deleteOne({ _id: new ObjectId(req.params.id) });
       res.send({ message: "Deleted successfully" });
     });
+
+    // accessories api
+    app.post("/accessories", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const accessory = req.body;
+        const result = await accessoriesCollection.insertOne(accessory);
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding accessory:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the accessory" });
+      }
+    });
+
+    app.get("/accessories", async (req, res) => {
+      try {
+        const accessories = await accessoriesCollection.find().toArray();
+        res.send(accessories);
+      } catch (error) {
+        console.error("Error fetching accessories:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching accessories" });
+      }
+    });
+
+    app.delete(
+      "/accessories/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const id = req.params.id;
+          const query = { _id: new ObjectId(id) };
+          const result = await accessoriesCollection.deleteOne(query);
+          res.send(result);
+        } catch (error) {
+          console.error("Error deleting accessory:", error);
+          res
+            .status(500)
+            .send({ error: "An error occurred while deleting the accessory" });
+        }
+      },
+    );
 
     // reviews api
     app.post("/reviews", async (req, res) => {
