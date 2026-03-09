@@ -131,6 +131,7 @@ async function run() {
         } else {
           res.send({ message: "User already exists" });
         }
+        // console.log(user);
       } catch (error) {
         console.error("Error adding user:", error);
         res
@@ -151,15 +152,25 @@ async function run() {
       }
     });
 
-    app.get("/users/:email", verifyToken, async (req, res) => {
+    app.get("/usersRole/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const query = { email: email };
         const user = await usersCollection.findOne(query);
-        res.send(user);
+        res.send({ role: user?.role || "user" });
       } catch (error) {
         console.error("Error fetching user:", error);
         res.send({ error: "An error occurred while fetching the user" });
+      }
+    });
+
+    app.get("/users/email/:email", verifyToken, async (req, res) => {
+      try {
+        const email = req.params.email;
+        const user = await usersCollection.findOne({ email });
+        res.send(user);
+      } catch (error) {
+        res.status(500).send({ message: "Error fetching user" });
       }
     });
 
