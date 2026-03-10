@@ -103,6 +103,18 @@ async function run() {
     };
 
     // service api
+    app.post("/services", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const service = req.body;
+        const result = await servicesCollection.insertOne(service);
+        res.send(result);
+      } catch (error) {
+        console.error("Error adding service:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while adding the service" });
+      }
+    });
     app.get("/services", async (req, res) => {
       try {
         const services = await servicesCollection.find().toArray();
@@ -112,6 +124,19 @@ async function run() {
         res
           .status(500)
           .send({ error: "An error occurred while fetching services" });
+      }
+    });
+    app.delete("/services/:id", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await servicesCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error("Error deleting service:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while deleting the service" });
       }
     });
 
@@ -428,6 +453,19 @@ async function run() {
         res
           .status(500)
           .send({ error: "An error occurred while fetching reviews" });
+      }
+    });
+    app.delete("/reviews/:id", verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await reviewsCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error("Error deleting review:", error);
+        res
+          .status(500)
+          .send({ error: "An error occurred while deleting the review" });
       }
     });
 
