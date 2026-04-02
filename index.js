@@ -11,6 +11,7 @@ app.use(
       "http://localhost:5173",
       "https://moto-solution-bd-7hzg.onrender.com",
     ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   }),
 );
