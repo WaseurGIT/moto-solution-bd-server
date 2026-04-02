@@ -141,27 +141,67 @@ async function run() {
     });
 
     // users api
+    // app.post("/users", async (req, res) => {
+    //   try {
+    //     const user = req.body;
+    //     const lastLoggedIn = new Date().toISOString().split("T")[0];
+    //     if (!user.name || !user.email) {
+    //       return res.status(400).send({ error: "Name and email are required" });
+    //     }
+    //     const existingUser = await usersCollection.findOne({
+    //       email: user.email,
+    //     });
+    //     if (!existingUser) {
+    //       const result = await usersCollection.insertOne({ ...user, lastLoggedIn });
+    //       res.send(result);
+    //     } else {
+    //       res.send({ message: "User already exists" });
+    //     }
+    //     // console.log(user);
+    //   } catch (error) {
+    //     console.error("Error adding user:", error);
+    //     res
+    //       .status(500)
+    //       .send({ error: "An error occurred while adding the user" });
+    //   }
+    // });
+
     app.post("/users", async (req, res) => {
       try {
         const user = req.body;
+        const lastLoggedIn = new Date().toISOString().split("T")[0];
+
         if (!user.name || !user.email) {
           return res.status(400).send({ error: "Name and email are required" });
         }
+
         const existingUser = await usersCollection.findOne({
           email: user.email,
         });
+
         if (!existingUser) {
-          const result = await usersCollection.insertOne(user);
+          const result = await usersCollection.insertOne({
+            ...user,
+            lastLoggedIn,
+          });
           res.send(result);
         } else {
-          res.send({ message: "User already exists" });
+          await usersCollection.updateOne(
+            { email: user.email },
+            {
+              $set: {
+                lastLoggedIn,
+              },
+            },
+          );
+
+          res.send({ message: "User already exists, last login updated" });
         }
-        // console.log(user);
       } catch (error) {
         console.error("Error adding user:", error);
-        res
-          .status(500)
-          .send({ error: "An error occurred while adding the user" });
+        res.status(500).send({
+          error: "An error occurred while adding/updating the user",
+        });
       }
     });
 
