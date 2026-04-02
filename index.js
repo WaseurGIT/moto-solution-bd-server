@@ -7,7 +7,10 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", process.env.ORIGIN],
+    origin: [
+      "http://localhost:5173",
+      "https://moto-solution-bd-7hzg.onrender.com",
+    ],
     credentials: true,
   }),
 );
